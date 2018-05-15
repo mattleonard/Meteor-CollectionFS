@@ -25,6 +25,7 @@ or wants to make their own storage adapter.
 * cfs:filesystem
 * cfs:gridfs
 * cfs:s3
+* cfs:google-storage
 * cfs:dropbox
 
 ## Collections
@@ -78,7 +79,7 @@ You can change any of the info in the `copies` object using the setter methods o
 
 Created by the GridFS storage adapter. The `cfs_gridfs.<storeName>.files` and `cfs_gridfs.<storeName>.chunks` collections match the MongoDB GridFS spec.
 
-### _tempstore
+### \_tempstore
 
 When files are first uploaded or inserted on the server, we save the original to a temporary store. This is a place where data can be stored until we have all the chunks we need and we are able to successfully save the file to all of the defined permanant stores. The temporary store may create one or more collections with `_tempstore` in the name. In general, it is relatively safe to clear these collections at any time. The worst you will do is cause a currently uploading or currently storing file to fail.
 
@@ -93,35 +94,39 @@ the FS.StorageAdapter constructor function. Here's an example:
 FS.MyStore = function(name, options) {
   // Prep some variables here
 
-  return new FS.StorageAdapter(name, {}, {
-    typeName: 'storage.myadapter',
-    get: function(identifier, callback) {
-      // Use identifier to retrieve a Buffer and pass it to callback
-    },
-    getBytes: function(identifier, start, end, callback) {
-      // Use identifier to retrieve a Buffer containing only
-      // the bytes from start to end, and pass it to callback.
-      // If this is impossible, don't include a getBytes property.
-    },
-    put: function(id, fileKey, buffer, options, callback) {
-      // Store the buffer and then call the callback, passing it
-      // an identifier that will later be the first argument of the
-      // other API functions. The identifier will likely be the
-      // fileKey, the id, or some altered version of those.
-    },
-    remove: function(identifier, callback) {
-      // Delete the data for the file identified by identifier
-    },
-    watch: function(callback) {
-      // If you can watch file data, initialize a watcher and then call
-      // callback whenever a file changes. Refer to the filesystem
-      // storage adapter for an example. If you can't watch files, then
-      // throw an error stating that the "sync" option is not supported.
-    },
-    init: function() {
-      // Perform any initialization
+  return new FS.StorageAdapter(
+    name,
+    {},
+    {
+      typeName: "storage.myadapter",
+      get: function(identifier, callback) {
+        // Use identifier to retrieve a Buffer and pass it to callback
+      },
+      getBytes: function(identifier, start, end, callback) {
+        // Use identifier to retrieve a Buffer containing only
+        // the bytes from start to end, and pass it to callback.
+        // If this is impossible, don't include a getBytes property.
+      },
+      put: function(id, fileKey, buffer, options, callback) {
+        // Store the buffer and then call the callback, passing it
+        // an identifier that will later be the first argument of the
+        // other API functions. The identifier will likely be the
+        // fileKey, the id, or some altered version of those.
+      },
+      remove: function(identifier, callback) {
+        // Delete the data for the file identified by identifier
+      },
+      watch: function(callback) {
+        // If you can watch file data, initialize a watcher and then call
+        // callback whenever a file changes. Refer to the filesystem
+        // storage adapter for an example. If you can't watch files, then
+        // throw an error stating that the "sync" option is not supported.
+      },
+      init: function() {
+        // Perform any initialization
+      }
     }
-  });
+  );
 };
 ```
 
@@ -170,10 +175,10 @@ pre-defined chunk size to determine how many chunks the file will be broken into
 It then adds one task to its PowerQueue instance per chunk. Each chunk task does
 the following:
 
-1. Extracts the necessary subset (chunk) of data from the file.
-2. Passes the data chunk to a server method over DDP.
-3. Marks the chunk uploaded in a client-only tracking collection if the server
-method reports no errors.
+1.  Extracts the necessary subset (chunk) of data from the file.
+2.  Passes the data chunk to a server method over DDP.
+3.  Marks the chunk uploaded in a client-only tracking collection if the server
+    method reports no errors.
 
 PowerQueue's reactive methods are used to report total progress for all current
 uploads, but the custom client-only tracking collection is used to report progress
@@ -185,13 +190,13 @@ queues are updated to use them)
 Each data chunk is received by a DDP access point (a server method defined in
 accessPoint.js). This method does the following:
 
-1. Checks that incoming arguments are of the correct type.
-2. If the `insecure` package is not used, checks the `insert` allow and deny
-functions. If insertion is denied, the method throws an access denied error.
-3. Passes the data chunk to the temporary store.
-4. If the temporary store reports that it now has all chunks for the file,
-retrieves the complete file from the temporary store and calls `fsFile.put()`
-to begin the process of saving it to each of the defined stores.
+1.  Checks that incoming arguments are of the correct type.
+2.  If the `insecure` package is not used, checks the `insert` allow and deny
+    functions. If insertion is denied, the method throws an access denied error.
+3.  Passes the data chunk to the temporary store.
+4.  If the temporary store reports that it now has all chunks for the file,
+    retrieves the complete file from the temporary store and calls `fsFile.put()`
+    to begin the process of saving it to each of the defined stores.
 
 ### Step 4: Temporarily Store
 
@@ -228,13 +233,13 @@ passes through that function first. If a `beforeSave` returns `false`, this is
 recorded in the `FS.File` instance and the file will never be saved to that store.
 
 * If the store reports that it successfully saved the file, a reference string,
-returned by the store, is stored in `fsFile.copies[storeName]`. This string will
-be anything that the store wants to return, so long as it can be used later to
-retrieve that same file.
+  returned by the store, is stored in `fsFile.copies[storeName]`. This string will
+  be anything that the store wants to return, so long as it can be used later to
+  retrieve that same file.
 * If the store reports that it was not able to save the file, the error is logged
-in the `FS.File` instance. If the total number of failures exceeds the `maxTries`
-setting for the store, a `doneTrying` flag is set to `true`. When `doneTrying`
-is `false`, the FileWorker may attempt to save again later. (See the next step.)
+  in the `FS.File` instance. If the total number of failures exceeds the `maxTries`
+  setting for the store, a `doneTrying` flag is set to `true`. When `doneTrying`
+  is `false`, the FileWorker may attempt to save again later. (See the next step.)
 
 ### Step 6: Retry
 

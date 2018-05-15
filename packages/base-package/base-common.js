@@ -3,19 +3,22 @@ FS = {};
 
 // namespace for adapters; XXX should this be added by cfs-storage-adapter pkg instead?
 FS.Store = {
-  GridFS: function () {
+  GridFS: function() {
     throw new Error('To use FS.Store.GridFS, you must add the "cfs:gridfs" package.');
   },
-  FileSystem: function () {
+  FileSystem: function() {
     throw new Error('To use FS.Store.FileSystem, you must add the "cfs:filesystem" package.');
   },
-  S3: function () {
+  S3: function() {
     throw new Error('To use FS.Store.S3, you must add the "cfs:s3" package.');
   },
-  WABS: function () {
+  GoogleStorage: function() {
+    throw new Error('To use FS.Store.S3, you must add the "cfs:google-storage" package.');
+  },
+  WABS: function() {
     throw new Error('To use FS.Store.WABS, you must add the "cfs:wabs" package.');
   },
-  Dropbox: function () {
+  Dropbox: function() {
     throw new Error('To use FS.Store.Dropbox, you must add the "cfs:dropbox" package.');
   }
 };
@@ -43,8 +46,8 @@ _Utility = {};
 
 /** @method _Utility.defaultZero
  * @private
-  * @param {Any} val Returns number or 0 if value is a falsy
-  */
+ * @param {Any} val Returns number or 0 if value is a falsy
+ */
 _Utility.defaultZero = function(val) {
   return +(val || 0);
 };
@@ -81,7 +84,7 @@ FS.Utility.cloneFileRecord = function(rec, options) {
   // we want a full clone. But if using it to get a filerecord object for inserting into the
   // internal collection, then there are certain properties we want to omit so that they aren't
   // stored in the collection.
-  var omit = options.full ? [] : ['collectionName', 'collection', 'data', 'createdByTransform'];
+  var omit = options.full ? [] : ["collectionName", "collection", "data", "createdByTransform"];
   for (var prop in rec) {
     if (rec.hasOwnProperty(prop) && !_.contains(omit, prop)) {
       result[prop] = rec[prop];
@@ -108,7 +111,6 @@ FS.Utility.defaultCallback = function defaultCallback(err) {
       // Normal error, just throw error
       throw err;
     }
-
   }
 };
 
@@ -125,12 +127,12 @@ FS.Utility.defaultCallback = function defaultCallback(err) {
  */
 FS.Utility.handleError = function(f, err, result) {
   // Set callback
-  var callback = (typeof f === 'function')? f : FS.Utility.defaultCallback;
+  var callback = typeof f === "function" ? f : FS.Utility.defaultCallback;
   // Set the err
-  var error = (err === ''+err)? new Error(err) : err;
+  var error = err === "" + err ? new Error(err) : err;
   // callback
   return callback(error, result);
-}
+};
 
 /**
  * @method FS.Utility.noop
@@ -156,9 +158,11 @@ FS.Utility.validateAction = function validateAction(validators, fileObj, userId)
 
   // If insecure package is used and there are no validators defined,
   // allow the action.
-  if (typeof Package === 'object'
-          && Package.insecure
-          && denyValidators.length + allowValidators.length === 0) {
+  if (
+    typeof Package === "object" &&
+    Package.insecure &&
+    denyValidators.length + allowValidators.length === 0
+  ) {
     return;
   }
 
@@ -169,15 +173,19 @@ FS.Utility.validateAction = function validateAction(validators, fileObj, userId)
   }
 
   // Any deny returns true means denied.
-  if (_.any(denyValidators, function(validator) {
-    return validator(userId, fileObj);
-  })) {
+  if (
+    _.any(denyValidators, function(validator) {
+      return validator(userId, fileObj);
+    })
+  ) {
     throw new Meteor.Error(403, "Access denied");
   }
   // Any allow returns true means proceed. Throw error if they all fail.
-  if (_.all(allowValidators, function(validator) {
-    return !validator(userId, fileObj);
-  })) {
+  if (
+    _.all(allowValidators, function(validator) {
+      return !validator(userId, fileObj);
+    })
+  ) {
     throw new Meteor.Error(403, "Access denied");
   }
 };
@@ -191,9 +199,9 @@ FS.Utility.validateAction = function validateAction(validators, fileObj, userId)
 FS.Utility.getFileName = function utilGetFileName(name) {
   // in case it's a URL, strip off potential query string
   // should have no effect on filepath
-  name = name.split('?')[0];
+  name = name.split("?")[0];
   // strip off beginning path or url
-  var lastSlash = name.lastIndexOf('/');
+  var lastSlash = name.lastIndexOf("/");
   if (lastSlash !== -1) {
     name = name.slice(lastSlash + 1);
   }
@@ -209,11 +217,11 @@ FS.Utility.getFileName = function utilGetFileName(name) {
 FS.Utility.getFileExtension = function utilGetFileExtension(name) {
   name = FS.Utility.getFileName(name);
   // Seekout the last '.' if found
-  var found = name.lastIndexOf('.');
+  var found = name.lastIndexOf(".");
   // Return the extension if found else ''
   // If found is -1, we return '' because there is no extension
   // If found is 0, we return '' because it's a hidden file
-  return (found > 0 ? name.slice(found + 1).toLowerCase() : '');
+  return found > 0 ? name.slice(found + 1).toLowerCase() : "";
 };
 
 /**
@@ -231,7 +239,7 @@ FS.Utility.setFileExtension = function utilSetFileExtension(name, ext) {
   if (currentExt.length) {
     name = name.slice(0, currentExt.length * -1) + ext;
   } else {
-    name = name + '.' + ext;
+    name = name + "." + ext;
   }
   return name;
 };
@@ -242,15 +250,16 @@ FS.Utility.setFileExtension = function utilSetFileExtension(name, ext) {
 FS.Utility.encodeParams = function encodeParams(params) {
   var buf = [];
   _.each(params, function(value, key) {
-    if (buf.length)
-      buf.push('&');
-    buf.push(FS.Utility.encodeString(key), '=', FS.Utility.encodeString(value));
+    if (buf.length) buf.push("&");
+    buf.push(FS.Utility.encodeString(key), "=", FS.Utility.encodeString(value));
   });
-  return buf.join('').replace(/%20/g, '+');
+  return buf.join("").replace(/%20/g, "+");
 };
 
 FS.Utility.encodeString = function encodeString(str) {
-  return encodeURIComponent(str).replace(/[!'()]/g, escape).replace(/\*/g, "%2A");
+  return encodeURIComponent(str)
+    .replace(/[!'()]/g, escape)
+    .replace(/\*/g, "%2A");
 };
 
 /*
@@ -263,37 +272,37 @@ FS.Utility._btoa = function _fsUtility_btoa(str) {
   if (str instanceof Buffer) {
     buffer = str;
   } else {
-    buffer = new Buffer(str.toString(), 'binary');
+    buffer = new Buffer(str.toString(), "binary");
   }
 
-  return buffer.toString('base64');
+  return buffer.toString("base64");
 };
 
 FS.Utility.btoa = function fsUtility_btoa(str) {
-  if (typeof btoa === 'function') {
+  if (typeof btoa === "function") {
     // Client
     return btoa(str);
-  } else if (typeof Buffer !== 'undefined') {
+  } else if (typeof Buffer !== "undefined") {
     // Server
     return FS.Utility._btoa(str);
   } else {
-    throw new Error('FS.Utility.btoa: Cannot base64 encode on your system');
+    throw new Error("FS.Utility.btoa: Cannot base64 encode on your system");
   }
 };
 
 FS.Utility._atob = function _fsUtility_atob(str) {
-  return new Buffer(str, 'base64').toString('binary');
+  return new Buffer(str, "base64").toString("binary");
 };
 
 FS.Utility.atob = function fsUtility_atob(str) {
-  if (typeof atob === 'function') {
+  if (typeof atob === "function") {
     // Client
     return atob(str);
-  } else if (typeof Buffer !== 'undefined') {
+  } else if (typeof Buffer !== "undefined") {
     // Server
     return FS.Utility._atob(str);
   } else {
-    throw new Error('FS.Utility.atob: Cannot base64 encode on your system');
+    throw new Error("FS.Utility.atob: Cannot base64 encode on your system");
   }
 };
 
