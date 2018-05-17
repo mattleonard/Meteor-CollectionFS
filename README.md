@@ -1,5 +1,4 @@
-CollectionFS
-============
+# CollectionFS
 
 CollectionFS is a suite of Meteor packages that together provide a complete file
 management solution including uploading, downloading, storage, synchronization,
@@ -19,36 +18,38 @@ Victor Leung wrote a great [quick start guide](https://medium.com/@victorleungtw
 ## Table of Contents
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Important Notes](#important-notes)
-- [Installation](#installation)
-- [Introduction](#introduction)
-- [Getting Started](#getting-started)
-  - [Initiate the upload](#initiate-the-upload)
-  - [Using `insert` Properly](#using-insert-properly)
-  - [After the Upload](#after-the-upload)
-- [Storage Adapters](#storage-adapters)
-- [File Manipulation](#file-manipulation)
-  - [transformWrite / transformRead](#transformwrite--transformread)
-  - [beforeWrite](#beforewrite)
-- [Image Manipulation](#image-manipulation)
-  - [Basic Example](#basic-example)
-  - [Optimizing](#optimizing)
-- [Filtering](#filtering)
-- [An FS.File Instance](#an-fsfile-instance)
-  - [Storing FS.File references in your objects](#storing-fsfile-references-in-your-objects)
-- [Security](#security)
-  - [Securing Based on User Information](#securing-based-on-user-information)
-- [Display an Uploaded Image](#display-an-uploaded-image)
-- [UI Helpers](#ui-helpers)
-  - [FS.File Instance Helper Methods](#fsfile-instance-helper-methods)
-  - [url](#url)
-  - [isImage](#isimage)
-  - [isAudio](#isaudio)
-  - [isVideo](#isvideo)
-  - [isUploaded](#isuploaded)
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+**Table of Contents** _generated with [DocToc](https://github.com/thlorenz/doctoc)_
+
+* [Important Notes](#important-notes)
+* [Installation](#installation)
+* [Introduction](#introduction)
+* [Getting Started](#getting-started)
+  * [Initiate the upload](#initiate-the-upload)
+  * [Using `insert` Properly](#using-insert-properly)
+  * [After the Upload](#after-the-upload)
+* [Storage Adapters](#storage-adapters)
+* [File Manipulation](#file-manipulation)
+  * [transformWrite / transformRead](#transformwrite--transformread)
+  * [beforeWrite](#beforewrite)
+* [Image Manipulation](#image-manipulation)
+  * [Basic Example](#basic-example)
+  * [Optimizing](#optimizing)
+* [Filtering](#filtering)
+* [An FS.File Instance](#an-fsfile-instance)
+  * [Storing FS.File references in your objects](#storing-fsfile-references-in-your-objects)
+* [Security](#security)
+  * [Securing Based on User Information](#securing-based-on-user-information)
+* [Display an Uploaded Image](#display-an-uploaded-image)
+* [UI Helpers](#ui-helpers)
+  * [FS.File Instance Helper Methods](#fsfile-instance-helper-methods)
+  * [url](#url)
+  * [isImage](#isimage)
+  * [isAudio](#isaudio)
+  * [isVideo](#isvideo)
+  * [isUploaded](#isuploaded)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -100,6 +101,10 @@ $ meteor add cfs:dropbox
 # OR
 
 $ meteor add iyyang:cfs-aliyun
+
+# OR
+
+$ meteor add cfs:google-storage
 ```
 
 Depending on what you need to do, you may need to add additional add-on packages. These are explained in the documentation sections to which they apply.
@@ -114,10 +119,10 @@ The CollectionFS package makes available two important global variables:
 `FS.File` and `FS.Collection`.
 
 * An `FS.File` instance wraps a file and its data
-on the client or server. It is similar to the browser `File` object (and can be
-created from a `File` object), but it has additional properties and methods. Many of its methods are reactive when the instance is returned by a call to `find` or `findOne`.
+  on the client or server. It is similar to the browser `File` object (and can be
+  created from a `File` object), but it has additional properties and methods. Many of its methods are reactive when the instance is returned by a call to `find` or `findOne`.
 * An `FS.Collection` provides a collection in which information about
-files can be stored. It is backed by an underlying normal `Mongo.Collection` instance. Most collection methods, such as `find` and `insert` are available on the `FS.Collection` instance. If you need to call other collection methods such as `_ensureIndex`, you can call them directly on the underlying `Mongo.Collection` instance available through `myFSCollection.files`.
+  files can be stored. It is backed by an underlying normal `Mongo.Collection` instance. Most collection methods, such as `find` and `insert` are available on the `FS.Collection` instance. If you need to call other collection methods such as `_ensureIndex`, you can call them directly on the underlying `Mongo.Collection` instance available through `myFSCollection.files`.
 
 A document from a `FS.Collection` is represented as a `FS.File`.
 
@@ -130,17 +135,18 @@ resume uploads.
 The first step in using this package is to define a `FS.Collection`.
 
 ### Create the FS Collection and Filestore
-*common.js:*
+
+_common.js:_
 
 ```js
 Images = new FS.Collection("images", {
-  stores: [new FS.Store.FileSystem("images", {path: "~/uploads"})]
+  stores: [new FS.Store.FileSystem("images", { path: "~/uploads" })]
 });
 ```
 
 In this example, we've defined a FS.Collection named "images", which will
 be a new collection in your MongoDB database with the name "cfs.images.filerecord". We've
-also told it to use the filesystem storage adataper and store the files in `~/uploads` on
+also told it to use the filesystem storage adapter and store the files in `~/uploads` on
 the local filesystem. If you don't specify a `path`, a `cfs/files` folder in your app
 container (bundle directory) will be used.
 
@@ -149,13 +155,14 @@ global on the client or the server, but be sure to give them the same name
 (the first argument in each constructor) on both the client and the server.
 
 ### Adding upload permissions (insert)
+
 To allow users to submit files to the FS Collection, you must create an `allow` rule in Server code:
 
 **server.js** or within **Meteor.isServer** block:
 
 ```javascript
 Images.allow({
-  'insert': function () {
+  insert: function() {
     // add custom authentication code here
     return true;
   }
@@ -169,10 +176,10 @@ the change event handler of an HTML file input:
 
 ```js
 Template.myForm.events({
-  'change .myFileInput': function(event, template) {
+  "change .myFileInput": function(event, template) {
     var files = event.target.files;
     for (var i = 0, ln = files.length; i < ln; i++) {
-      Images.insert(files[i], function (err, fileObj) {
+      Images.insert(files[i], function(err, fileObj) {
         // Inserted new doc with ID fileObj._id, and kicked off the data upload using HTTP
       });
     }
@@ -185,9 +192,9 @@ method, `FS.Utility.eachFile`:
 
 ```js
 Template.myForm.events({
-  'change .myFileInput': function(event, template) {
+  "change .myFileInput": function(event, template) {
     FS.Utility.eachFile(event, function(file) {
-      Images.insert(file, function (err, fileObj) {
+      Images.insert(file, function(err, fileObj) {
         // Inserted new doc with ID fileObj._id, and kicked off the data upload using HTTP
       });
     });
@@ -223,14 +230,13 @@ need to worry about CORS. In fact, we recommend doing all inserts on the
 client (managing security through allow/deny), unless you are generating
 the data on the server.
 
-
 ### Using `insert` Properly
 
 When you need to insert a file that's located on a client, always call
 `myFSCollection.insert` on the client. While you could define your own method,
 pass it the `fsFile`, and call `myFSCollection.insert` on the server, the
 difficulty is with getting the data from the client to the server. When you
-pass the fsFile to your method, only the file *info* is sent and not the *data*.
+pass the fsFile to your method, only the file _info_ is sent and not the _data_.
 
 By contrast, when you do the insert directly on the client, it automatically
 chunks the file's data after insert, and then queues it to be sent chunk by
@@ -266,8 +272,10 @@ packages. Refer to the package documentation for usage instructions.
 * [cfs:s3](https://github.com/CollectionFS/Meteor-CollectionFS/tree/devel/packages/s3): Allows you to save to an Amazon S3 bucket.
 * [cfs:dropbox](https://github.com/CollectionFS/Meteor-CollectionFS/tree/devel/packages/dropbox): Allows you to save to a Dropbox account.
 * [iyyang:cfs-aliyun](https://github.com/yyang/cfs-aliyun): Allows you to save to Aliyun OSS Storage.
+* [cfs:google-storage](https://github.com/CollectionFS/Meteor-CollectionFS/tree/devel/packages/google-storage): Allows you to save to Google Storage.
 
 ### Securing sensitive information
+
 _If you're using a storage adapter that requires sensitive information such as
 access keys, we recommend supplying that information using environment variables.
 If you instead decide to pass options to the storage adapter constructor,
@@ -337,25 +345,28 @@ beforeWrite: function (fileObj) {
 A common use for `transformWrite` is to manipulate images before saving them.
 To get this set up:
 
-1. Install [GraphicsMagick](http://www.graphicsmagick.org/) or [ImageMagick](http://www.imagemagick.org/script/index.php) on your development machine and on any server that will host your app. (The free Meteor deployment servers do not have either of these, so you can't deploy to there.) These are normal operating system applications, so you have to install them using the correct method for your OS. For example, on Mac OSX you can use `brew install graphicsmagick` assuming you have Homebrew installed.
-2. Add the `cfs:graphicsmagick` Meteor package to your app: `meteor add cfs:graphicsmagick`
+1.  Install [GraphicsMagick](http://www.graphicsmagick.org/) or [ImageMagick](http://www.imagemagick.org/script/index.php) on your development machine and on any server that will host your app. (The free Meteor deployment servers do not have either of these, so you can't deploy to there.) These are normal operating system applications, so you have to install them using the correct method for your OS. For example, on Mac OSX you can use `brew install graphicsmagick` assuming you have Homebrew installed.
+2.  Add the `cfs:graphicsmagick` Meteor package to your app: `meteor add cfs:graphicsmagick`
 
 ### Basic Example
 
 ```js
 var createThumb = function(fileObj, readStream, writeStream) {
   // Transform the image into a 10x10px thumbnail
-  gm(readStream, fileObj.name()).resize('10', '10').stream().pipe(writeStream);
+  gm(readStream, fileObj.name())
+    .resize("10", "10")
+    .stream()
+    .pipe(writeStream);
 };
 
 Images = new FS.Collection("images", {
   stores: [
     new FS.Store.FileSystem("thumbs", { transformWrite: createThumb }),
-    new FS.Store.FileSystem("images"),
+    new FS.Store.FileSystem("images")
   ],
   filter: {
     allow: {
-      contentTypes: ['image/*'] //allow only images in this FS.Collection
+      contentTypes: ["image/*"] //allow only images in this FS.Collection
     }
   }
 });
@@ -366,14 +377,13 @@ Check out the [Wiki](https://github.com/CollectionFS/Meteor-CollectionFS/wiki) f
 ### Optimizing
 
 * When you insert a file, a worker begins saving copies of it to all of the
-stores you define for the collection. The copies are saved to stores in the
-order you list them in the `stores` option array. Thus, you may want to prioritize
-certain stores by listing them first. For example, if you have an images collection
-with a thumbnail store and a large-size store, you may want to list the thumbnail
-store first to ensure that thumbnails appear on screen as soon as possible after
-inserting a new file. Or if you are storing audio files, you may want to prioritize
-a "sample" store over a "full-length" store.
-
+  stores you define for the collection. The copies are saved to stores in the
+  order you list them in the `stores` option array. Thus, you may want to prioritize
+  certain stores by listing them first. For example, if you have an images collection
+  with a thumbnail store and a large-size store, you may want to list the thumbnail
+  store first to ensure that thumbnails appear on screen as soon as possible after
+  inserting a new file. Or if you are storing audio files, you may want to prioritize
+  a "sample" store over a "full-length" store.
 
 ## Filtering
 
@@ -385,14 +395,14 @@ Images = new FS.Collection("images", {
   filter: {
     maxSize: 1048576, // in bytes
     allow: {
-      contentTypes: ['image/*'],
-      extensions: ['png']
+      contentTypes: ["image/*"],
+      extensions: ["png"]
     },
     deny: {
-      contentTypes: ['image/*'],
-      extensions: ['png']
+      contentTypes: ["image/*"],
+      extensions: ["png"]
     },
-    onInvalid: function (message) {
+    onInvalid: function(message) {
       if (Meteor.isClient) {
         alert(message);
       } else {
@@ -422,7 +432,7 @@ as long as they pass the tests in your `FS.Collection.allow()` and
 
 The extension checks are used only when there is a filename. It's possible to
 upload a file with no name. Thus, you should generally use extension checks
-only *in addition to* content type checks, and not instead of content type checks.
+only _in addition to_ content type checks, and not instead of content type checks.
 
 The file extensions must be specified without a leading period. Extension matching
 is case-insensitive.
@@ -471,26 +481,26 @@ fileObj.type();
 fileObj.updatedAt();
 
 // get for the version in a store
-fileObj.name({store: 'thumbs'});
-fileObj.extension({store: 'thumbs'});
-fileObj.size({store: 'thumbs'});
-fileObj.formattedSize({store: 'thumbs'}); // must add the "numeral" package to your project to use this method
-fileObj.type({store: 'thumbs'});
-fileObj.updatedAt({store: 'thumbs'});
+fileObj.name({ store: "thumbs" });
+fileObj.extension({ store: "thumbs" });
+fileObj.size({ store: "thumbs" });
+fileObj.formattedSize({ store: "thumbs" }); // must add the "numeral" package to your project to use this method
+fileObj.type({ store: "thumbs" });
+fileObj.updatedAt({ store: "thumbs" });
 
 // set original
-fileObj.name('pic.png');
-fileObj.extension('png');
+fileObj.name("pic.png");
+fileObj.extension("png");
 fileObj.size(100);
-fileObj.type('image/png');
-fileObj.updatedAt(new Date);
+fileObj.type("image/png");
+fileObj.updatedAt(new Date());
 
 // set for the version in a store
-fileObj.name('pic.png', {store: 'thumbs'});
-fileObj.extension('png', {store: 'thumbs'});
-fileObj.size(100, {store: 'thumbs'});
-fileObj.type('image/png', {store: 'thumbs'});
-fileObj.updatedAt(new Date, {store: 'thumbs'});
+fileObj.name("pic.png", { store: "thumbs" });
+fileObj.extension("png", { store: "thumbs" });
+fileObj.size(100, { store: "thumbs" });
+fileObj.type("image/png", { store: "thumbs" });
+fileObj.updatedAt(new Date(), { store: "thumbs" });
 ```
 
 These methods can all be used as UI helpers, too:
@@ -518,7 +528,7 @@ Also, rather than setting the `data` property directly, you should use the `atta
 _At the moment storing FS.File - References in MongoDB on the server side doesn't work. See eg. (https://github.com/CollectionFS/Meteor-cfs-ejson-file/issues/1) (https://github.com/CollectionFS/Meteor-CollectionFS/issues/356)
 (https://github.com/meteor/meteor/issues/1890)._
 
-_Instead store the _id's of your file objects and then fetch the FS.File-Objects from your CollectionFS - Collection._
+_Instead store the \_id's of your file objects and then fetch the FS.File-Objects from your CollectionFS - Collection._
 
 Often your files are part of another entity. You can store a reference to the file directly in the entity.
 You need to add `cfs:ejson-file` to your packages with `meteor add cfs:ejson-file`.
@@ -526,15 +536,15 @@ Then you can do for example:
 
 ```js
 // Add file reference of the event photo to the event
-var file = $('#file').get(0).files[0];
+var file = $("#file").get(0).files[0];
 var fileObj = eventPhotos.insert(file);
 events.insert({
-  name: 'My Event',
+  name: "My Event",
   photo: fileObj
 });
 
 // Later: Retrieve the event with the photo
-var event = events.findOne({name: 'My Event'});
+var event = events.findOne({ name: "My Event" });
 // This loads the data of the photo into event.photo
 // You can include it in your collection transform function.
 event.photo.getFileRecord();
@@ -569,23 +579,24 @@ and `deny` methods. To best understand how CollectionFS security works, you
 must first understand that there are two ways in which a user could interact
 with a file:
 
-* She could view or edit information *about* the file or any
-custom metadata you've attached to the file record.
-* She could view or edit the *actual file data*.
+* She could view or edit information _about_ the file or any
+  custom metadata you've attached to the file record.
+* She could view or edit the _actual file data_.
 
 You may find it necessary to secure file records with different criteria
 from that of file data. This is easy to do.
 
 Here's an overview of the various ways of securing various aspects of files:
 
-* To determine who can *see* file metadata, such as filename, size, content type,
-and any custom metadata that you set, use normal Meteor publish/subscribe
-to publish and subscribe to an `FS.Collection` cursor. This does not allow the
-user to *download* the file data.
-* To determine who can *download* the actual file, use "download" allow/deny
-functions. This is a custom type of allow/deny function provided by CollectionFS.
-The first argument is the userId and the second argument is the FS.File being
-requested for download. An example:
+* To determine who can _see_ file metadata, such as filename, size, content type,
+  and any custom metadata that you set, use normal Meteor publish/subscribe
+  to publish and subscribe to an `FS.Collection` cursor. This does not allow the
+  user to _download_ the file data.
+* To determine who can _download_ the actual file, use "download" allow/deny
+  functions. This is a custom type of allow/deny function provided by CollectionFS.
+  The first argument is the userId and the second argument is the FS.File being
+  requested for download. An example:
+
 ```
 Images.allow({
 	download: function(userId, fileObj) {
@@ -593,11 +604,12 @@ Images.allow({
 	}
 })
 ```
-* To determine who can *set* file metadata, insert files, and upload file data,
-use "insert" allow/deny functions.
-* To determine who can *update* file metadata, use "update" allow/deny functions.
-* To determine who can *remove* files, which removes all file data and file
-metadata, use "remove" allow/deny functions.
+
+* To determine who can _set_ file metadata, insert files, and upload file data,
+  use "insert" allow/deny functions.
+* To determine who can _update_ file metadata, use "update" allow/deny functions.
+* To determine who can _remove_ files, which removes all file data and file
+  metadata, use "remove" allow/deny functions.
 
 The `download` allow/deny functions can be thought of essentially as allowing or
 denying "read" access to the file. For a normal Meteor collection, "read" access
@@ -616,7 +628,7 @@ You can then check it in your allow/deny functions.
 ```js
 var fsFile = new FS.File(event.target.files[0]);
 fsFile.owner = Meteor.userId();
-fsCollection.insert(fsFile, function (err) {
+fsCollection.insert(fsFile, function(err) {
   if (err) throw err;
 });
 ```
@@ -630,7 +642,7 @@ Create a helper that returns your image files:
 
 ```js
 Template.imageView.helpers({
-  images: function () {
+  images: function() {
     return Images.find(); // Where Images is an FS.Collection instance
   }
 });
@@ -651,11 +663,10 @@ Use the `url` method with an `img` element in your markup:
 ```
 
 Notes:
+
 * `{{this.url}}` will assume the first store in your `stores` array. In this example, we're displaying the image from the "thumbs" store but wrapping it in a link that will load the image from the primary store (for example, the original image or a large image).
 * The `uploading` and `storing` options allow you to specify a static image that will be shown in place of the real image while it is being uploaded and stored. You can alternatively use `if` blocks like `{{#if this.isUploaded}}` and `{{#if this.hasStored 'thumbs'}}` to display something different until upload and storage is complete.
 * These helpers are actually just instance methods on the `FS.File` instances, so there are others you can use, such as `this.isImage`. See [the API documentation](https://github.com/CollectionFS/Meteor-CollectionFS/blob/master/packages/file/api.md). The `url` method is documented separately [here](https://github.com/CollectionFS/Meteor-CollectionFS/blob/master/packages/access-point/api.md#fsfileurloptionsanywhere).
-
-
 
 ## UI Helpers
 
